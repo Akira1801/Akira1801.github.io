@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Playlist</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/navbar.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+          <img src="/assets/yarn.svg" alt="yarn" width="30" height="30" class="me-2">
+          <a class="navbar-brand" href="#">Babi's Lounge</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+            <ul class="nav">
+                <li class="nav-item">
+                  <a class="nav-link active" href="/index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/pages/Crochet.html">Crochet Library</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/pages/Tracker.html">Tracker</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Recipes.html">Recipe List</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Movies.html">Movie Playlist</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Music.html">Music Playlist</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Webtoon.html">Webtoon Playlist</a>
+                </li>
+              </ul>
+          </div>
+        </div>
+      </nav>
+    <div class="container mt-4">
+        <h1 class="text-center">Movie Playlist</h1>
+        
+        <!-- Search Bar -->
+        <div class="input-group mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search for a movie...">
+            <button class="btn btn-primary" onclick="searchMovies()">Search</button>
+        </div>
+        
+        <!-- Results Container -->
+        <div id="results" class="row g-4"></div>
+        
+        <h2 class="mt-4">My Movie Library</h2>
+        <div id="library" class="row g-4"></div>
+    </div>
+    
+    <script>
+        const API_KEY = '93cbafc8eb18a0eb9ec3ee3dbe8daa40';
+        const libraryKey = 'movieLibrary';
+        let movieLibrary = JSON.parse(localStorage.getItem(libraryKey)) || [];
+
+        function searchMovies() {
+            const query = document.getElementById("searchInput").value;
+            let url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${query}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsDiv = document.getElementById("results");
+                    resultsDiv.innerHTML = "";
+                    
+                    data.results.forEach(movie => {
+                        const card = document.createElement("div");
+                        card.className = "col-md-4";
+                        card.innerHTML = `
+                            <div class="card h-100">
+                                <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" class="card-img-top" alt="${movie.title}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${movie.title}</h5>
+                                    <p class="card-text">${movie.overview.substring(0, 100)}...</p>
+                                    <button class="btn btn-success" onclick="addToLibrary(${movie.id}, '${movie.title}', '${movie.poster_path}')">Add to Library</button>
+                                </div>
+                            </div>`;
+                        resultsDiv.appendChild(card);
+                    });
+                })
+                .catch(error => console.error("Error fetching data:", error));
+        }
+
+        function addToLibrary(id, title, poster) {
+            if (!movieLibrary.some(movie => movie.id === id)) {
+                movieLibrary.push({ id, title, poster, status: "Planning to Watch" });
+                localStorage.setItem(libraryKey, JSON.stringify(movieLibrary));
+                renderLibrary();
+            }
+        }
+
+        function removeFromLibrary(id) {
+            movieLibrary = movieLibrary.filter(movie => movie.id !== id);
+            localStorage.setItem(libraryKey, JSON.stringify(movieLibrary));
+            renderLibrary();
+        }
+
+        function changeStatus(id, newStatus) {
+            const movie = movieLibrary.find(movie => movie.id === id);
+            if (movie) {
+                movie.status = newStatus;
+                localStorage.setItem(libraryKey, JSON.stringify(movieLibrary));
+                renderLibrary();
+            }
+        }
+
+        function renderLibrary() {
+            const libraryDiv = document.getElementById("library");
+            libraryDiv.innerHTML = "";
+            
+            movieLibrary.forEach(movie => {
+                const card = document.createElement("div");
+                card.className = "col-md-4";
+                card.innerHTML = `
+                    <div class="card h-100">
+                        <img src="https://image.tmdb.org/t/p/w500${movie.poster}" class="card-img-top" alt="${movie.title}">
+                        <div class="card-body">
+                            <h5 class="card-title">${movie.title}</h5>
+                            <p class="card-text">Status: ${movie.status}</p>
+                            <select class="form-select mb-2" onchange="changeStatus(${movie.id}, this.value)">
+                                <option ${movie.status === "Planning to Watch" ? "selected" : ""}>Planning to Watch</option>
+                                <option ${movie.status === "Watched" ? "selected" : ""}>Watched</option>
+                                <option ${movie.status === "Dropped" ? "selected" : ""}>Dropped</option>
+                            </select>
+                            <button class="btn btn-danger" onclick="removeFromLibrary(${movie.id})">Remove</button>
+                        </div>
+                    </div>`;
+                libraryDiv.appendChild(card);
+            });
+        }
+        
+        document.addEventListener("DOMContentLoaded", renderLibrary);
+    </script>
+</body>
+</html>

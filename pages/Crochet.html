@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babi's Crochet Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/navbar.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+          <img src="/assets/yarn.svg" alt="yarn" width="30" height="30" class="me-2">
+          <a class="navbar-brand" href="#">Babi's Lounge</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+            <ul class="nav">
+                <li class="nav-item">
+                  <a class="nav-link active" href="/index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/pages/Crochet.html">Crochet Library</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/pages/Tracker.html">Tracker</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Recipes.html">Recipe List</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Movies.html">Movie Playlist</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Music.html">Music Playlist</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Webtoon.html">Webtoon Playlist</a>
+                </li>
+              </ul>
+          </div>
+        </div>
+      </nav>
+    <h2 class="text-center mb-4">Babi's Crochet Library</h2>
+
+    <div class="card p-4 shadow-sm">
+        <input type="text" id="title" class="form-control mb-2" placeholder="Project Title">
+        <input type="text" id="stitchPattern" class="form-control mb-2" placeholder="Stitch Pattern">
+        <input type="number" id="stitchesPerRow" class="form-control mb-2" placeholder="Stitches Per Row">
+        <button id="addProject" class="btn btn-success w-100">Add Crochet Project</button>
+    </div>
+
+    <div id="projects" class="mt-4"></div>
+
+    <script>
+        let projects = JSON.parse(localStorage.getItem("projects")) || [];
+        let currentProjectIndex = null;
+        let pipWindow = null;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            updateProjectsList();
+            document.getElementById("addProject").addEventListener("click", addProject);
+        });
+
+        function saveProjects() {
+            localStorage.setItem("projects", JSON.stringify(projects));
+        }
+
+        function updateProjectsList() {
+            const projectList = document.getElementById("projects");
+            projectList.innerHTML = "";
+            projects.forEach((project, index) => {
+                const projectItem = document.createElement("div");
+                projectItem.className = "card p-3 mb-3 shadow-sm";
+                projectItem.innerHTML = `
+                    <h5 class="card-title">${project.title}</h5>
+                    <p class="card-text">🧶 Pattern: ${project.stitchPattern}</p>
+                    <p class="card-text">🔢 Stitches Per Row: ${project.stitchesPerRow}</p>
+                    <label class="form-label mt-2">🪡 Stitches Done:</label>
+                    <input type="number" class="form-control w-25 mb-2" value="${project.currentStitch}" 
+                        oninput="updateProject(${index}, 'currentStitch', this.value)">
+                    <label class="form-label">📏 Row Count:</label>
+                    <input type="number" class="form-control w-25" value="${project.currentRow}" 
+                        oninput="updateProject(${index}, 'currentRow', this.value)">
+                    <button class="btn btn-primary mt-2" onclick="openPiP(${index})">Open in PiP</button>
+                    <button class="btn btn-danger mt-2" onclick="deleteProject(${index})">Delete</button>
+                `;
+                projectList.appendChild(projectItem);
+            });
+        }
+
+        function addProject() {
+            const title = document.getElementById("title").value;
+            const stitchPattern = document.getElementById("stitchPattern").value;
+            const stitchesPerRow = document.getElementById("stitchesPerRow").value;
+
+            if (!title || !stitchPattern || !stitchesPerRow) return;
+
+            projects.push({
+                title,
+                stitchPattern,
+                stitchesPerRow: parseInt(stitchesPerRow),
+                currentRow: 0,
+                currentStitch: 0
+            });
+
+            saveProjects();
+            updateProjectsList();
+        }
+
+        function updateProject(index, field, value) {
+            projects[index][field] = parseInt(value) || 0;
+            saveProjects();
+            updateProjectsList();
+        }
+
+        function deleteProject(index) {
+            projects.splice(index, 1);
+            saveProjects();
+            updateProjectsList();
+        }
+
+        function openPiP(index) {
+            currentProjectIndex = index;
+            const project = projects[index];
+
+            if (window.documentPictureInPicture && window.documentPictureInPicture.window) {
+                return;
+            }
+
+            window.documentPictureInPicture.requestWindow({ width: 400, height: 300 }).then((pipWin) => {
+                pipWindow = pipWin;
+
+                pipWindow.document.head.innerHTML = `
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+                    <style>
+                        body { padding: 10px; background-color: white; }
+                        .card { box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1); padding: 15px; }
+                    </style>
+                `;
+
+                pipWindow.document.body.innerHTML = `
+                    <div class="card">
+                        <h5>${project.title}</h5>
+                        <p>🧶 Pattern: ${project.stitchPattern}</p>
+                        <p>🔢 Stitches Per Row: ${project.stitchesPerRow}</p>
+                        <label class="form-label">🪡 Stitches Done:</label>
+                        <input type="number" id="pip-stitches" class="form-control mb-2" value="${project.currentStitch}">
+                        <label class="form-label">📏 Row Count:</label>
+                        <input type="number" id="pip-rows" class="form-control mb-2" value="${project.currentRow}">
+                        <button class="btn btn-danger mt-2" onclick="window.close()">Close PiP</button>
+                    </div>
+                `;
+
+                // Sync changes live
+                const pipStitches = pipWindow.document.getElementById("pip-stitches");
+                const pipRows = pipWindow.document.getElementById("pip-rows");
+
+                pipStitches.addEventListener("input", () => {
+                    project.currentStitch = parseInt(pipStitches.value) || 0;
+                    updateOriginalProject();
+                });
+
+                pipRows.addEventListener("input", () => {
+                    project.currentRow = parseInt(pipRows.value) || 0;
+                    updateOriginalProject();
+                });
+
+                pipWindow.addEventListener("pagehide", stopPiP);
+            });
+        }
+
+        function stopPiP() {
+            if (currentProjectIndex !== null) {
+                updateOriginalProject();
+            }
+        }
+
+        function updateOriginalProject() {
+            const project = projects[currentProjectIndex];
+            const projectCards = document.querySelectorAll("#projects .card");
+            const card = projectCards[currentProjectIndex];
+
+            if (card) {
+                card.innerHTML = `
+                    <h5 class="card-title">${project.title}</h5>
+                    <p class="card-text">🧶 Pattern: ${project.stitchPattern}</p>
+                    <p class="card-text">🔢 Stitches Per Row: ${project.stitchesPerRow}</p>
+                    <label class="form-label mt-2">🪡 Stitches Done:</label>
+                    <input type="number" class="form-control w-25 mb-2" value="${project.currentStitch}" 
+                        oninput="updateProject(${currentProjectIndex}, 'currentStitch', this.value)">
+                    <label class="form-label">📏 Row Count:</label>
+                    <input type="number" class="form-control w-25" value="${project.currentRow}" 
+                        oninput="updateProject(${currentProjectIndex}, 'currentRow', this.value)">
+                    <button class="btn btn-primary mt-2" onclick="openPiP(${currentProjectIndex})">Open in PiP</button>
+                    <button class="btn btn-danger mt-2" onclick="deleteProject(${currentProjectIndex})">Delete</button>
+                `;
+            }
+            saveProjects();
+        }
+    </script>
+</body>
+</html>

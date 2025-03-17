@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Period Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href=" /css/navbar.css">
+    <script>
+        function calculatePeriod() {
+            const startDateInput = document.getElementById("startDate").value;
+            if (!startDateInput) return;
+
+            const startDate = new Date(startDateInput);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 5); // Period lasts ~5 days
+
+            const follicularStart = new Date(endDate);
+            follicularStart.setDate(endDate.getDate() + 1);
+
+            const ovulationDate = new Date(startDate);
+            ovulationDate.setDate(startDate.getDate() + 14);
+
+            const lutealStart = new Date(ovulationDate);
+            lutealStart.setDate(ovulationDate.getDate() + 1);
+
+            const cycleEnd = new Date(startDate);
+            cycleEnd.setDate(startDate.getDate() + 28); // Average 28-day cycle
+
+            const resultsContainer = document.getElementById("results");
+            const resultCard = document.createElement("div");
+            resultCard.className = "card p-3 mt-3 shadow-sm";
+            resultCard.innerHTML = `
+                <h5 class="text-center">Predicted Period Cycle</h5>
+                <p>📅 <strong>Period Started:</strong> ${startDate.toDateString()}</p>
+                <p>🩸 <strong>Period Ends:</strong> ${endDate.toDateString()}</p>
+                <p>🌱 <strong>Follicular Phase:</strong> ${follicularStart.toDateString()} - ${ovulationDate.toDateString()}</p>
+                <p>💖 <strong>Ovulation Day:</strong> ${ovulationDate.toDateString()} (Most Fertile)</p>
+                <p>🔥 <strong>Luteal Phase:</strong> ${lutealStart.toDateString()} - ${cycleEnd.toDateString()}</p>
+                <p>🔄 <strong>Next Expected Period:</strong> ${cycleEnd.toDateString()}</p>
+            `;
+
+            resultsContainer.prepend(resultCard); // Keeps previous results
+        }
+    </script>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <img src="/assets/yarn.svg" alt="yarn" width="30" height="30" class="me-2">
+      <a class="navbar-brand" href="#">Babi's Lounge</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+        <ul class="nav">
+            <li class="nav-item">
+              <a class="nav-link active" href="/index.html">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/pages/Crochet.html">Crochet Library</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/pages/Tracker.html">Tracker</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/pages/Recipes.html">Recipe List</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/pages/Movies.html">Movie Playlist</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/pages/Music.html">Music Playlist</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/pages/Webtoon.html">Webtoon Playlist</a>
+            </li>
+          </ul>
+      </div>
+    </div>
+  </nav>
+    <div class="tracker container py-5">
+    <h2 class="text-center mb-4">Period Tracker</h2>
+
+    <div class="card p-4 shadow-sm">
+        <label for="startDate" class="form-label">Select First Day of Period:</label>
+        <input type="date" id="startDate" class="form-control mb-3">
+        <button onclick="calculatePeriod()" class="btn btn-danger w-100">Track My Cycle</button>
+    </div>
+
+    <div id="results"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

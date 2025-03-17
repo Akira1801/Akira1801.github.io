@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/navbar.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+          <img src="/assets/yarn.svg" alt="yarn" width="30" height="30" class="me-2">
+          <a class="navbar-brand" href="#">Babi's Lounge</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+            <ul class="nav">
+                <li class="nav-item">
+                  <a class="nav-link active" href="/index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/pages/Crochet.html">Crochet Library</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/pages/Tracker.html">Tracker</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Recipes.html">Recipe List</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Movies.html">Movie Playlist</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Music.html">Music Playlist</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/Webtoon.html">Webtoon Playlist</a>
+                </li>
+              </ul>
+          </div>
+        </div>
+      </nav>
+    <div class="container mt-4">
+        <h1 class="text-center">Recipe Manager</h1>
+        
+        <!-- Add Recipe Form -->
+        <div class="mb-4">
+            <input type="text" id="recipeTitle" class="form-control mb-2" placeholder="Recipe Title">
+            <textarea id="recipeDescription" class="form-control mb-2" placeholder="Recipe Description"></textarea>
+            <input type="file" id="recipeImage" class="form-control mb-2">
+            <input type="text" id="ingredientInput" class="form-control mb-2" placeholder="Enter Ingredient">
+            <button class="btn btn-secondary" onclick="addIngredient()">Add Ingredient</button>
+            <ul id="ingredientList" class="list-group mt-2"></ul>
+            <button class="btn btn-primary mt-2" onclick="addRecipe()">Save Recipe</button>
+        </div>
+
+        <!-- Recipe List -->
+        <h2 class="text-center">My Recipes</h2>
+        <div id="recipeContainer" class="row g-4"></div>
+    </div>
+    
+    <script>
+        let recipes = JSON.parse(localStorage.getItem("recipes")) || [];
+
+        function addIngredient() {
+            const ingredientInput = document.getElementById("ingredientInput");
+            if (ingredientInput.value.trim() === "") return;
+            const li = document.createElement("li");
+            li.className = "list-group-item";
+            li.textContent = ingredientInput.value;
+            document.getElementById("ingredientList").appendChild(li);
+            ingredientInput.value = "";
+        }
+
+        function addRecipe() {
+            const title = document.getElementById("recipeTitle").value;
+            const description = document.getElementById("recipeDescription").value;
+            const imageFile = document.getElementById("recipeImage").files[0];
+            const ingredients = Array.from(document.getElementById("ingredientList").children).map(li => li.textContent);
+            if (!title || !description || !imageFile || ingredients.length === 0) return alert("Please fill all fields");
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imageUrl = event.target.result;
+                const recipe = { id: Date.now(), title, description, imageUrl, ingredients };
+                recipes.push(recipe);
+                localStorage.setItem("recipes", JSON.stringify(recipes));
+                displayRecipes();
+            };
+            reader.readAsDataURL(imageFile);
+        }
+
+        function displayRecipes() {
+            const container = document.getElementById("recipeContainer");
+            container.innerHTML = "";
+            recipes.forEach((recipe, index) => {
+                container.innerHTML += `
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <img src="${recipe.imageUrl}" class="card-img-top" alt="${recipe.title}">
+                            <div class="card-body">
+                                <h5 class="card-title">${recipe.title}</h5>
+                                <p class="card-text">${recipe.description}</p>
+                                <ul class="list-group mb-2">
+                                    ${recipe.ingredients.map(ing => `<li class="list-group-item">${ing}</li>`).join('')}
+                                </ul>
+                                <button class="btn btn-warning" onclick="editRecipe(${index})">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteRecipe(${index})">Delete</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function editRecipe(index) {
+            const recipe = recipes[index];
+            document.getElementById("recipeTitle").value = recipe.title;
+            document.getElementById("recipeDescription").value = recipe.description;
+            document.getElementById("ingredientList").innerHTML = recipe.ingredients.map(ing => `<li class='list-group-item'>${ing}</li>`).join('');
+            recipes.splice(index, 1);
+            localStorage.setItem("recipes", JSON.stringify(recipes));
+            displayRecipes();
+        }
+
+        function deleteRecipe(index) {
+            recipes.splice(index, 1);
+            localStorage.setItem("recipes", JSON.stringify(recipes));
+            displayRecipes();
+        }
+
+        displayRecipes();
+    </script>
+</body>
+</html>
