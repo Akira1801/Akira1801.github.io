@@ -84,96 +84,101 @@
     
     <script>
         function searchWebtoons() {
-    const query = document.getElementById("searchInput").value;
-    const type = document.getElementById("typeFilter").value;
-    let url = `https://api.jikan.moe/v4/manga?q=${query}&limit=10`;
-    if (type) url += `&type=${type}`;
-
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            const resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = "";
-            
-            data.data.forEach(item => {
-                const card = document.createElement("div");
-                card.className = "col-md-4";
-                card.innerHTML = `
-                    <div class="card h-100">
-                        <img src="${item.images.jpg.image_url}" class="card-img-top" alt="${item.title}">
-                        <div class="card-body">
-                            <h5 class="card-title">${item.title}</h5>
-                            <p class="card-text">${item.synopsis ? item.synopsis.substring(0, 100) + "..." : "No description available."}</p>
-                            <a href="${item.url}" target="_blank" class="btn btn-primary">View More</a>
-                            <button class="btn btn-success mt-2" onclick="addToLibrary('${item.mal_id}', '${item.title.replace(/'/g, "\\'")}')">Add to Library</button>
-                        </div>
-                    </div>`;
-                resultsDiv.appendChild(card);
+            const query = document.getElementById("searchInput").value;
+            const type = document.getElementById("typeFilter").value;
+            let url = `https://api.jikan.moe/v4/manga?q=${query}&limit=10`;
+            if (type) url += `&type=${type}`;
+    
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsDiv = document.getElementById("results");
+                    resultsDiv.innerHTML = "";
+                    
+                    data.data.forEach(item => {
+                        const card = document.createElement("div");
+                        card.className = "col-md-4";
+                        card.innerHTML = `
+                            <div class="card h-100">
+                                <img src="${item.images.jpg.image_url}" class="card-img-top" alt="${item.title}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${item.title}</h5>
+                                    <p class="card-text">${item.synopsis ? item.synopsis.substring(0, 100) + "..." : "No description available."}</p>
+                                    <a href="${item.url}" target="_blank" class="btn btn-primary">View More</a>
+                                    <button class="btn btn-success mt-2" onclick="addToLibrary('${item.mal_id}', '${item.title.replace(/'/g, "\\'")}')">Add to Library</button>
+                                </div>
+                            </div>`;
+                        resultsDiv.appendChild(card);
+                    });
+                })
+                .catch(error => console.error("Error fetching data:", error));
+        }
+    
+        function addToLibrary(id, title, category = "reading") {
+            if (document.querySelector(`[data-id='${id}']`)) return; // Avoid duplicates
+    
+            const libraryItem = document.createElement("li");
+            libraryItem.className = "list-group-item d-flex justify-content-between align-items-center";
+            libraryItem.dataset.id = id;
+            libraryItem.innerHTML = `
+                ${title}
+                <select class="form-select w-50 ms-2" onchange="moveToCategory(this, '${id}', '${title}')">
+                    <option value="reading" ${category === "reading" ? "selected" : ""}>Reading</option>
+                    <option value="completed" ${category === "completed" ? "selected" : ""}>Completed</option>
+                    <option value="dropped" ${category === "dropped" ? "selected" : ""}>Dropped</option>
+                </select>
+                <button class="btn btn-danger btn-sm ms-2" onclick="removeFromLibrary('${id}')">❌</button>`;
+    
+            document.getElementById(`${category}List`).appendChild(libraryItem);
+            saveLibrary();
+        }
+    
+        function removeFromLibrary(id) {
+            const item = document.querySelector(`[data-id='${id}']`);
+            if (item) item.remove();
+    
+            let library = JSON.parse(localStorage.getItem("webtoonLibrary")) || {};
+            Object.keys(library).forEach(category => {
+                library[category] = library[category].filter(webtoon => webtoon.id !== id);
             });
-        })
-        .catch(error => console.error("Error fetching data:", error));
-}
-
-function addToLibrary(id, title, category = "reading") {
-    if (document.querySelector(`[data-id='${id}']`)) return; // Avoid duplicates
-
-    const libraryItem = document.createElement("li");
-    libraryItem.className = "list-group-item d-flex justify-content-between align-items-center";
-    libraryItem.dataset.id = id;
-    libraryItem.innerHTML = `
-        ${title}
-        <select class="form-select w-50 ms-2" onchange="moveToCategory(this, '${id}', '${title}')">
-            <option value="reading" ${category === "reading" ? "selected" : ""}>Reading</option>
-            <option value="completed" ${category === "completed" ? "selected" : ""}>Completed</option>
-            <option value="dropped" ${category === "dropped" ? "selected" : ""}>Dropped</option>
-        </select>
-        <button class="btn btn-danger btn-sm ms-2" onclick="removeFromLibrary('${id}')">❌</button>`;
-
-    document.getElementById(`${category}List`).appendChild(libraryItem);
-    sessionStorage.setItem(id, title); // Store title for persistence
-    saveLibrary();
-}
-
-function removeFromLibrary(id) {
-    const item = document.querySelector(`[data-id='${id}']`);
-    if (item) item.remove();
-    sessionStorage.removeItem(id);
-    saveLibrary();
-}
-
-function moveToCategory(selectElement, id, title) {
-    const category = selectElement.value;
-    removeFromLibrary(id);
-    addToLibrary(id, title, category);
-}
-
-function saveLibrary() {
-    const library = {
-        reading: Array.from(document.getElementById("readingList").children).map(item => item.dataset.id),
-        completed: Array.from(document.getElementById("completedList").children).map(item => item.dataset.id),
-        dropped: Array.from(document.getElementById("droppedList").children).map(item => item.dataset.id)
-    };
-    localStorage.setItem("webtoonLibrary", JSON.stringify(library));
-}
-
-function loadLibrary() {
-    const library = JSON.parse(localStorage.getItem("webtoonLibrary"));
-    if (!library) return;
-
-    ["reading", "completed", "dropped"].forEach(category => {
-        const list = document.getElementById(`${category}List`);
-        list.innerHTML = ""; // Clear before repopulating
-        library[category].forEach(id => {
-            const title = sessionStorage.getItem(id);
-            if (title) {
-                addToLibrary(id, title, category);
-            }
-        });
-    });
-}
-
-window.onload = loadLibrary;
-
+    
+            localStorage.setItem("webtoonLibrary", JSON.stringify(library));
+        }
+    
+        function moveToCategory(selectElement, id, title) {
+            const category = selectElement.value;
+            removeFromLibrary(id);
+            addToLibrary(id, title, category);
+        }
+    
+        function saveLibrary() {
+            let library = { reading: [], completed: [], dropped: [] };
+    
+            ["reading", "completed", "dropped"].forEach(category => {
+                library[category] = Array.from(document.getElementById(`${category}List`).children).map(item => ({
+                    id: item.dataset.id,
+                    title: item.innerText.split("\n")[0]
+                }));
+            });
+    
+            localStorage.setItem("webtoonLibrary", JSON.stringify(library));
+        }
+    
+        function loadLibrary() {
+            const library = JSON.parse(localStorage.getItem("webtoonLibrary"));
+            if (!library) return;
+    
+            ["reading", "completed", "dropped"].forEach(category => {
+                const list = document.getElementById(`${category}List`);
+                list.innerHTML = ""; // Clear before repopulating
+                library[category].forEach(webtoon => {
+                    addToLibrary(webtoon.id, webtoon.title, category);
+                });
+            });
+        }
+    
+        window.onload = loadLibrary;
     </script>
+    
 </body>
 </html>
