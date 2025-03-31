@@ -9,9 +9,9 @@
     <script defer>
         const API_URL = "https://www.googleapis.com/youtube/v3/search";
         const API_KEY = "AIzaSyAqKjcvhueVNa7Tdc0UeX3PRLUC6tZUkz4"; // Replace with your actual API key
-        
+    
         document.addEventListener("DOMContentLoaded", loadPlaylists);
-        
+    
         function searchMusic() {
             let query = document.getElementById("searchInput").value;
             fetch(`${API_URL}?part=snippet&type=video&q=${query}&key=${API_KEY}&maxResults=10`)
@@ -19,97 +19,143 @@
                 .then(data => displayResults(data.items))
                 .catch(error => console.error("Error fetching data:", error));
         }
-        
+    
         function displayResults(results) {
+            let playlistOptions = getPlaylistOptions(); // Ensure dropdown updates
+    
             let output = "<ul class='list-group'>";
             results.forEach(video => {
                 let title = video.snippet.title;
                 let videoId = video.id.videoId;
                 let cover = video.snippet.thumbnails.default.url;
                 let channel = video.snippet.channelTitle;
+                
                 output += `
                     <li class='list-group-item d-flex justify-content-between align-items-center'>
                         <img src="${cover}" alt="Cover" width="50" class="me-2">
                         <span>${title} - ${channel}</span>
                         <select class='form-select form-select-sm w-auto d-inline' id='playlistSelect-${videoId}'>
-                            ${getPlaylistOptions()}
+                            ${playlistOptions}
                         </select>
                         <button class='btn btn-sm btn-primary' onclick="addToPlaylist('${videoId}', '${title}', '${channel}', '${cover}')">Add</button>
                     </li>`;
             });
             output += "</ul>";
             document.getElementById("searchResults").innerHTML = output;
+    
+            updateDropdowns(); // Ensure dropdowns refresh
         }
-        
+    
         function getPlaylistOptions() {
             let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
-            let options = "";
-            for (let name in playlists) {
-                options += `<option value='${name}'>${name}</option>`;
-            }
-            return options;
+            let options = Object.keys(playlists)
+                .map(name => `<option value='${name}'>${name}</option>`)
+                .join("");
+            return options || "<option disabled>No playlists available</option>";
         }
-        
+    
         function createPlaylist() {
-            let name = document.getElementById("playlistName").value;
-            if (!name) return alert("Enter a playlist name");
+            let name = document.getElementById("playlistName").value.trim();
+            if (!name) return alert("Enter a valid playlist name");
+    
             let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
+            if (playlists[name]) return alert("Playlist already exists");
+    
             playlists[name] = [];
             localStorage.setItem("playlists", JSON.stringify(playlists));
+    
             document.getElementById("playlistName").value = "";
             loadPlaylists();
+            
+            setTimeout(updateDropdowns, 100); // Ensure dropdown updates
         }
-        
+    
         function loadPlaylists() {
             let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
             let output = "";
+    
             for (let name in playlists) {
                 output += `<div class='mb-3'>
-                    <h4>${name} <button class='btn btn-sm btn-danger' onclick="deletePlaylist('${name}')">Delete</button></h4>
+                    <h4>${name} 
+                        <button class='btn btn-sm btn-danger' onclick="deletePlaylist('${name}')">Delete</button>
+                    </h4>
                     <ul class='list-group' id='playlist-${name}'>`;
+    
                 playlists[name].forEach((song, index) => {
                     output += `
                         <li class='list-group-item d-flex justify-content-between align-items-center'>
                             <img src="${song.cover}" alt="Cover" width="50" class="me-2">
-                            <span contenteditable='true' onblur="editSong('${name}', ${index}, this.innerText)">${song.title} - ${song.artist}</span>
+                            <span contenteditable='true' onblur="editSong('${name}', ${index}, this.innerText)">
+                                ${song.title} - ${song.artist}
+                            </span>
                             <button class='btn btn-sm btn-danger' onclick="removeFromPlaylist('${name}', ${index})">Remove</button>
                         </li>`;
                 });
                 output += "</ul></div>";
             }
+    
             document.getElementById("playlists").innerHTML = output;
+    
+            setTimeout(updateDropdowns, 100); // Ensure dropdowns refresh after rendering
         }
-        
+    
+        function updateDropdowns() {
+            let selects = document.querySelectorAll("[id^='playlistSelect-']");
+            selects.forEach(select => {
+                select.innerHTML = getPlaylistOptions();
+            });
+        }
+    
         function addToPlaylist(videoId, title, artist, cover) {
-            let playlistName = document.getElementById(`playlistSelect-${videoId}`).value;
+            let playlistSelect = document.getElementById(`playlistSelect-${videoId}`);
+            if (!playlistSelect) return alert("No playlist selected");
+    
+            let playlistName = playlistSelect.value;
             let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
+    
+            if (!playlists[playlistName]) return alert("Playlist not found");
+    
             playlists[playlistName].push({ title, artist, cover });
             localStorage.setItem("playlists", JSON.stringify(playlists));
+    
             loadPlaylists();
         }
-        
+    
         function removeFromPlaylist(playlist, index) {
-            let playlists = JSON.parse(localStorage.getItem("playlists"));
+            let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
+            if (!playlists[playlist]) return;
+    
             playlists[playlist].splice(index, 1);
+            if (playlists[playlist].length === 0) {
+                delete playlists[playlist]; // Remove empty playlist
+            }
+    
             localStorage.setItem("playlists", JSON.stringify(playlists));
             loadPlaylists();
         }
-        
+    
         function editSong(playlist, index, newTitle) {
-            let playlists = JSON.parse(localStorage.getItem("playlists"));
+            let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
+            if (!playlists[playlist]) return;
+    
             let [title, artist] = newTitle.split(" - ");
             playlists[playlist][index].title = title;
             playlists[playlist][index].artist = artist || "Unknown Artist";
+    
             localStorage.setItem("playlists", JSON.stringify(playlists));
         }
-        
+    
         function deletePlaylist(name) {
-            let playlists = JSON.parse(localStorage.getItem("playlists"));
-            delete playlists[name];
+            let playlists = JSON.parse(localStorage.getItem("playlists")) || {};
+            delete playlists[name]; // Remove playlist
             localStorage.setItem("playlists", JSON.stringify(playlists));
+    
             loadPlaylists();
+            setTimeout(updateDropdowns, 100); // Ensure dropdown refreshes after deleting
         }
     </script>
+    
+    
     </head>
   <body>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
